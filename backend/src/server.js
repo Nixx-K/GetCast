@@ -1,7 +1,11 @@
 import express from "express";
+import { config } from "dotenv";
 
-// Rout imports
+
+// Route imports
 import castingRoutes from './routes/castingRoutes.js';
+
+config();
 
 const app = express();
 
