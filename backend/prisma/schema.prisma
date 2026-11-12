@@ -147,6 +147,16 @@ enum Industry {
   RTV_AGD //RTV EURO AGD, Media Expert...
 }
 
+enum ProjectType {
+  FILM
+  COMMERCIAL
+  MUSIC_VIDEO
+  SERIES
+  PHOTO_SHOOT
+  THEATRE
+  OTHER
+}
+
 model User {
   id String @id @default(uuid())
   email String @unique
@@ -182,13 +192,14 @@ model TalentProfile  {
   actingAgeFrom Int?
   actingAgeTo Int?
   description String?
-  additionalSkills AdditionalSkills[]
+  additionalSkills AdditionalSkills[] @default([])
   showreelUrl String?
   headshotUrl String
   fullBodyShotUrl String?
-  additionalPhotoUrls String[]
+  additionalPhotoUrls String[] @default([])
 
   applications Application[]
+  projects TalentProject[]
 }
 
 model ClientProfile {
@@ -199,12 +210,16 @@ model ClientProfile {
   nip String @unique
   industry Industry
   castings Casting[]
+
+  @@unique([userId, industry])
 }
 
 model Casting {
   id String @id @default(uuid())
   clientId String
-  client ClientProfile @relation(fields: [clientId], references: [userId], onDelete: Cascade)
+  clientIndustry Industry
+  client ClientProfile @relation(fields: [clientId, clientIndustry], references: [userId, industry], onDelete: Cascade)
+  conflictWindowMonths Int @default(12)
   name String
   description String
   applicationDeadline DateTime
@@ -223,12 +238,12 @@ model CastingRole {
   gender Gender?
   ageFrom Int
   ageTo Int
-  additionalSkillsWanted AdditionalSkills[]
+  additionalSkillsWanted AdditionalSkills[] @default([])
   description String
   feeInZl Int
-  shootingDays DateTime[] @db.Date
+  shootingDays DateTime[] @db.Date @default([])
   sceneDescription String?
-  applications Application[]
+  applications Application[] 
   
   createdAt DateTime @default(now())
 
@@ -249,7 +264,22 @@ model Application {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([roleId, talentId]) //one application per talent
+  @@unique([roleId, talentId]) //one application for a role per talent
   @@index([talentId])
+}
+
+model TalentProject {
+  id String @id @default(uuid())
+  talentId String
+  talent TalentProfile @relation(fields: [talentId], references: [userId], onDelete: Cascade)
+  title String
+  projectType ProjectType
+  industry Industry? //for commercials - important for client when hiring talent that;s appeared in competing brand's commercials before
+  brandName String?
+  completedAt DateTime @db.Date
+  roleName String
+  proofUrl String?
+
+  createdAt DateTime @default(now())
 }
 
