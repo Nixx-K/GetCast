@@ -1,0 +1,285 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+// USER_TALENT, USER_CLIENT, CASTING, PROJECT(?), ROLE, CV(?)
+
+enum UserRole {
+  TALENT
+  CLIENT
+}
+
+// for talents
+enum ApplicationStatus { 
+  INVITED // automatically by matching
+  DECLINED
+  SUBMITTED
+  REJECTED
+  ACCEPTED
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  OTHER
+}
+
+enum Ethnicity {
+  CAUCASIAN
+  MIDDLE_EASTERN
+  AFROAMERICAN
+  LATINO
+  MIXED
+  ASIAN
+  INDIGENOUS
+  SLAVIC
+}
+
+enum EyeColor {
+  GREY
+  GREEN
+  BLUE
+  HAZEL
+  DARK_BROWN
+  HETEROCHROMIA
+}
+
+enum HairColor {
+  WHITE
+  GREY
+  BLONDE
+  BROWN 
+  DARK_BLONDE
+  LIGHT_BROWN
+  DARK_BROWN
+  BLACK
+  AUBURN
+  RED
+  UNNATURAL
+}
+
+enum BodyType {
+  SKINNY
+  PETITE
+  ATHLETIC
+  PLUS_SIZE
+  PREGNANT
+  BODY_BUILDER
+  CURVY
+}
+
+enum VoiceType {
+  ALTO 
+  SOPRANO
+  MEZZOSOPRANO
+  CONTRALTO
+  BARITONE
+  BASS
+  TENOR
+  COUNTERTENOR
+}
+
+enum AdditionalSkills {
+  MUSICAL_THEATRE_SINGING
+  MUSICAL_THEATRE_DANCE
+  CHOIR_SINGING
+  OPERA_SINGING
+  MODERN_JAZZ
+  SKATEBOARDING
+  UKULELE
+  GUITAR
+  TAP_DANCE
+  PERCUSSION
+  BALLET
+  CONTORTION
+  FIGURE_SKATING
+  PIANO
+  YOGA
+  WAKEBOARDING
+  ACROBATICS
+  SWIMMING
+  MARTIAL_ARTS
+  BALLROOM_DANCE
+  HIP_HOP
+  ARCHERY
+}
+
+enum HairLength {
+  LONG 
+  VERY_LONG
+  SHORT
+  BALD
+  MEDIUM
+}
+
+enum HairType {
+  PIN_STRAIGHT
+  WAVY
+  CURLY
+  COILY
+  LOCKS
+}
+
+enum Industry {
+  BEAUTY //Sephora, L'Oreal, etc. I'm thinking Rossmann and Hebe too
+  FAST_FOOD //McD, KFC...
+  SUPERMARKET //Biedronka, LIDL, Lewiatan...
+  AUTOMOTIVE //Toyota, Alfa Romeo...
+  INSURANCE 
+  MOBILE_SERVICES // Orange, Play...
+  ELECTRONICS //for example Samsung/Apple
+  BANKING //mBank, Bank Pekao...
+  FASHION //Deichmann, Sinsay
+  PRODUCE //Kotlin, Winiary...
+  SWEETS //Wedel, Prince Polo...
+  RTV_AGD //RTV EURO AGD, Media Expert...
+}
+
+enum ProjectType {
+  FILM
+  COMMERCIAL
+  MUSIC_VIDEO
+  SERIES
+  PHOTO_SHOOT
+  THEATRE
+  OTHER
+}
+
+model User {
+  id String @id @default(uuid())
+  email String @unique
+  passwordHash String
+  role UserRole
+
+  createdAt DateTime @default(now())
+
+  talentProfile TalentProfile?
+  clientProfile ClientProfile?
+}
+
+model TalentProfile  {
+  userId String @id
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  firstName String
+  lastName String
+  dateOfBirth DateTime @db.Date
+  gender Gender
+  ethnicity Ethnicity
+  eyeColor EyeColor
+  hairColor HairColor?
+  hairLength HairLength?
+  hairType HairType?
+  heightInCm Int //mandatory? its neccessary, but actors wont fill this out upon sign in
+  weightInKg Int
+  chestPerimeterInCm Int?
+  waistPerimeterInCm Int?
+  hipsPerimeterInCm Int?
+  bodyType BodyType?
+  voiceType VoiceType?
+  actingAgeFrom Int?
+  actingAgeTo Int?
+  description String?
+  additionalSkills AdditionalSkills[] @default([])
+  showreelUrl String?
+  headshotUrl String
+  fullBodyShotUrl String?
+  additionalPhotoUrls String[] @default([])
+
+  applications Application[]
+  projects TalentProject[]
+}
+
+model ClientProfile {
+  userId String @id 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  companyName String @unique
+  nip String @unique
+  industry Industry
+  castings Casting[]
+
+  @@unique([userId, industry])
+}
+
+model Casting {
+  id String @id @default(uuid())
+  clientId String
+  clientIndustry Industry
+  client ClientProfile @relation(fields: [clientId, clientIndustry], references: [userId, industry], onDelete: Cascade)
+  conflictWindowMonths Int @default(12)
+  name String
+  description String
+  applicationDeadline DateTime
+  roles CastingRole[]
+
+  createdAt DateTime @default(now())
+
+  @@index([clientId]) //for faster lookups/filtering
+}
+
+model CastingRole {
+  id String @id @default(uuid())
+  castingId String
+  casting Casting @relation(fields: [castingId], references: [id], onDelete: Cascade)
+  name String
+  gender Gender?
+  ageFrom Int
+  ageTo Int
+  additionalSkillsWanted AdditionalSkills[] @default([])
+  description String
+  feeInZl Int
+  shootingDays DateTime[] @db.Date @default([])
+  sceneDescription String?
+  applications Application[] 
+  
+  createdAt DateTime @default(now())
+
+  @@index([castingId])
+}
+
+model Application {
+  id String @id @default(uuid())
+  roleId String 
+  role CastingRole @relation(fields:[roleId],references:[id], onDelete: Cascade)
+  talentId String
+  talent TalentProfile @relation(fields:[talentId], references:[userId], onDelete: Cascade)
+  status ApplicationStatus
+  isFavorite Boolean @default(false)
+  submissionUrl String?
+  newSlateUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([roleId, talentId]) //one application for a role per talent
+  @@index([talentId])
+}
+
+model TalentProject {
+  id String @id @default(uuid())
+  talentId String
+  talent TalentProfile @relation(fields: [talentId], references: [userId], onDelete: Cascade)
+  title String
+  projectType ProjectType
+  industry Industry? //for commercials - important for client when hiring talent that;s appeared in competing brand's commercials before
+  brandName String?
+  completedAt DateTime @db.Date
+  roleName String
+  proofUrl String?
+
+  createdAt DateTime @default(now())
+}
+
