@@ -1,5 +1,6 @@
 import {prisma} from "../config/db.js";
 import bcrypt from "bcryptjs";
+import { generateToken } from "../utils/generateToken.js";
 
 const register = async (req,res) => {
     const {email, password, role} = req.body;
@@ -37,6 +38,9 @@ const register = async (req,res) => {
         },
     });
 
+    //JWT Token generation
+    const token = generateToken(user.id, res);
+
     res.status(201).json({
         status: "success",
         data:{
@@ -45,6 +49,7 @@ const register = async (req,res) => {
                 email: email,
                 role: role,
             },
+        token,
         },
     });
 };
@@ -70,6 +75,10 @@ const login = async (req,res) => {
         return res.status(401).json({error: "Niepoprawne hasło lub adres e-mail"});
     };
 
+
+    //JWT Token generation
+    const token = generateToken(user.id, res);
+
     res.status(201).json({
         status: "success",
         data:{
@@ -77,10 +86,24 @@ const login = async (req,res) => {
                 id: user.id,
                 email: email,
             },
+        token,
         },
     });
 };
 
 
 
-export { register,login };
+const logout = async (req,res) => {
+    res.cookie("jwt", "", {
+        httpOnly: true,
+        expires: new Date(0),
+    });
+    res.status(200).json({
+        status: "success",
+        message: "Wylogowanie powiodło się",
+    });
+};
+
+
+
+export { register,login, logout };
