@@ -1,5 +1,5 @@
 import {prisma} from "../config/db.js";
-
+import bcrypt from "bcryptjs";
 
 const register = async (req,res) => {
     const {email, password, role} = req.body;
@@ -14,6 +14,73 @@ const register = async (req,res) => {
     }
 
     // Hash Password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    //Create User
+    /*
+    model User {
+  id String @id @default(uuid())
+  email String @unique
+  password String
+  role UserRole
+
+  createdAt DateTime @default(now())
+
+  talentProfile TalentProfile?
+  clientProfile ClientProfile?
+}
+    */
+    const user = await prisma.user.create({
+        data: {
+            email, password: hashedPassword, role,
+        },
+    });
+
+    res.status(201).json({
+        status: "success",
+        data:{
+            user: {
+                id: user.id,
+                email: email,
+                role: role,
+            },
+        },
+    });
 };
 
-export { register };
+
+
+const login = async (req,res) => {
+    const {email, password} = req.body;
+
+    // Check if email exists in db
+    const user = await prisma.user.findUnique({
+        where: {email: email},
+    });
+
+    if (!user) {
+        return res.status(401).json({error: "Niepoprawne hasło lub adres e-mail"});
+    }
+
+    //Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid){
+        return res.status(401).json({error: "Niepoprawne hasło lub adres e-mail"});
+    };
+
+    res.status(201).json({
+        status: "success",
+        data:{
+            user: {
+                id: user.id,
+                email: email,
+            },
+        },
+    });
+};
+
+
+
+export { register,login };
