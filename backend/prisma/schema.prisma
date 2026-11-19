@@ -4,6 +4,10 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
+
+//After changes: npx prisma migrate dev --name NAMEYOUWANT
+//npx prisma generate
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -98,6 +102,8 @@ enum AdditionalSkills {
   OPERA_SINGING
   MODERN_JAZZ
   SKATEBOARDING
+  BASKETBALL
+  PARKOUR
   UKULELE
   GUITAR
   TAP_DANCE
@@ -138,6 +144,7 @@ enum Industry {
   SUPERMARKET //Biedronka, LIDL, Lewiatan...
   AUTOMOTIVE //Toyota, Alfa Romeo...
   INSURANCE 
+  BEVERAGES // Pepsi, Coca Cola, Tymbark...
   MOBILE_SERVICES // Orange, Play...
   ELECTRONICS //for example Samsung/Apple
   BANKING //mBank, Bank Pekao...
@@ -155,6 +162,12 @@ enum ProjectType {
   PHOTO_SHOOT
   THEATRE
   OTHER
+}
+
+enum RoleType {
+  LEAD
+  SUPPORTING
+  ENSEMBLE
 }
 
 model User {
@@ -234,6 +247,7 @@ model CastingRole {
   id String @id @default(uuid())
   castingId String
   casting Casting @relation(fields: [castingId], references: [id], onDelete: Cascade)
+  type RoleType
   name String
   gender Gender?
   ageFrom Int
